@@ -1,0 +1,47 @@
+
+name: Deploy Pages
+
+on:
+  workflow_dispatch:
+    inputs:
+      cf_account_id:
+        description: "Cloudflare Account ID"
+        required: true
+      cf_api_token:
+        description: "Cloudflare API Token (Pages:Edit)"
+        required: true
+      pages_project:
+        description: "Cloudflare Pages project name"
+        required: true
+      worker_endpoint:
+        description: "Worker base URL (e.g., https://example.com/ingest or workers.dev URL)"
+        required: false
+  push:
+    branches: [ main ]
+    paths:
+      - 'apps/site/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install wrangler
+        run: npm i -g wrangler@3
+
+      - name: Deploy Pages
+        run: |
+          if [ -n "${{ inputs.worker_endpoint }}" ]; then
+            echo "Setting WORKER_ENDPOINT via environment variable is recommended in the Pages project settings.
+";
+          fi
+          npx wrangler pages deploy apps/site --project-name "${{ inputs.pages_project }}" --branch production
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ inputs.cf_account_id }}
+          CLOUDFLARE_API_TOKEN:  ${{ inputs.cf_api_token  }}
